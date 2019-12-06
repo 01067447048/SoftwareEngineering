@@ -2,6 +2,7 @@ package com.indysoft.amazingtetris;
 
 import android.app.Activity;
 import android.content.ContentValues;
+import android.content.Context;
 import android.content.SharedPreferences;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
@@ -9,6 +10,11 @@ import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.Point;
 import android.graphics.drawable.BitmapDrawable;
+import android.graphics.drawable.shapes.Shape;
+import android.hardware.Sensor;
+import android.hardware.SensorEvent;
+import android.hardware.SensorEventListener;
+import android.hardware.SensorManager;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
@@ -59,6 +65,21 @@ public class GameActivity extends Activity implements GestureDetector.OnGestureL
 
     Shape currentShape;
 
+    private SensorManager sensorManager = null;
+    private SensorEventListener gyroListener;
+    private Sensor Gyro = null;
+
+    private double gyx;
+    private double gyy;
+    private double gyz;
+
+    private double timetamp = 0.0;
+    private double dt;
+
+    private double radtodgr = 180 / Math.PI;
+    private static final float MS2S = 1.0f/1000000.0f;
+    //TextView textView3 = (TextView) findViewById(R.id.Test);
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -70,6 +91,12 @@ public class GameActivity extends Activity implements GestureDetector.OnGestureL
         NUM_ROWS = Integer.parseInt(prefs.getString("num_rows_preference", "20")) + 6;
         NUM_COLUMNS = Integer.parseInt(prefs.getString("num_columns_preference", "10")) + 6;
         speed = prefs.getString("speed_preference", "Normal");
+        sensorManager = (SensorManager) getSystemService((Context.SENSOR_SERVICE));
+        Gyro = sensorManager.getDefaultSensor(Sensor.TYPE_GYROSCOPE);
+        gyroListener = new GyroLitsener();
+
+
+
         switch (speed) {
             case "Slow": {
                 SPEED_NORMAL = 1000;
@@ -93,6 +120,7 @@ public class GameActivity extends Activity implements GestureDetector.OnGestureL
         TextView textView2 = (TextView) findViewById(R.id.game_over_textview2);
         textView2.setVisibility(View.INVISIBLE);
 
+
         bitmap = Bitmap.createBitmap(BOARD_WIDTH, BOARD_HEIGHT, Bitmap.Config.ARGB_8888);
         canvas = new Canvas(bitmap);
         paint = new Paint();
@@ -100,12 +128,18 @@ public class GameActivity extends Activity implements GestureDetector.OnGestureL
         score = 0;
         currentShapeAlive = false;
 
+
         gestureDetector = new GestureDetectorCompat(this, this);
         gestureDetector.setOnDoubleTapListener(this);
+        sensorManager.registerListener(gyroListener,Gyro,SensorManager.SENSOR_DELAY_NORMAL);
+
+
 
         ShapesInit();
 
         GameInit();
+
+
     }
 
     @Override
@@ -595,6 +629,36 @@ public class GameActivity extends Activity implements GestureDetector.OnGestureL
 
     void GameInit() {
 
+        /*gyroListener = new SensorEventListener() {
+            @Override
+            public void onSensorChanged(SensorEvent event) {
+                double gyroX = event.values[0];
+                double gyroY = event.values[1];
+                double gyroZ = event.values[2];
+                TextView textview3 = (TextView) findViewById(R.id.Test);
+
+                //단위시간 계산
+
+                dt = (event.timestamp-timetamp)*NS2S;
+                timetamp = event.timestamp;
+
+                //시간의 변화가 있으면
+
+                //if(dt-timetamp*NS2S !=0){
+                    gyx=gyx+gyroX;
+                    gyy=gyy+gyroY;
+                    gyz=gyz+gyroZ;
+                    textview3.setText("4321");
+
+                //}
+            }
+
+            @Override
+            public void onAccuracyChanged(Sensor sensor, int accuracy) {
+
+            }
+        };*/
+
         // Create the game board (backend)
         gameMatrix = new BoardCell[NUM_ROWS][];
         for (int i = 0; i < NUM_ROWS; ++i) {
@@ -643,7 +707,9 @@ public class GameActivity extends Activity implements GestureDetector.OnGestureL
         ChangeFastSpeedState(false);
     }
 
-    @Override
+
+
+   @Override
     public boolean onSingleTapConfirmed(MotionEvent e) {
         return false;
     }
@@ -921,6 +987,71 @@ public class GameActivity extends Activity implements GestureDetector.OnGestureL
                     mat[i][j] = aux[i][j];
                 }
             }
+        }
+    }
+    public class GyroLitsener implements SensorEventListener{
+
+        @Override
+        public void onSensorChanged(SensorEvent event){
+            double gyroX = event.values[0];
+            double gyroY = event.values[1];
+            double gyroZ = event.values[2];
+            TextView textview3 = (TextView) findViewById(R.id.Test);
+
+
+
+            dt = (event.timestamp-timetamp)*MS2S;
+            timetamp = event.timestamp;
+
+
+
+            if(dt-timetamp*MS2S !=0){
+
+                gyx=gyx+gyroX*radtodgr;
+                gyy=gyy+gyroY*radtodgr;
+                gyz=gyz+gyroZ*radtodgr;
+
+                if(gyz<-300){
+                    MoveShape(RIGHT_DIRECTION, currentShape);
+                    PaintMatrix();
+                    gyx = -150;
+                    gyy = -150;
+                    gyz = -150;
+                }
+
+                else if(gyz>300){
+                    MoveShape(LEFT_DIRECTION, currentShape);
+                    PaintMatrix();
+                    gyx = 150;
+                    gyy = 150;
+                    gyz = 150;
+                }
+                else if(gyx>400){
+                    RotateRight(currentShape);
+                    PaintMatrix();
+                    gyx = 300;
+                    gyy = 300;
+                    gyz = 300;
+
+                }
+                else if (gyy < -1800){
+                    gamePaused = true;
+                    PaintMatrix();
+                    gyx=0;
+                    gyz=0;
+                }
+                else if (gyy> 100){
+                    gamePaused = false;
+                    PaintMatrix();
+                    gyx=0;
+                    gyy=0;
+                    gyz=0;
+                }
+            }
+        }
+        @Override
+        public void onAccuracyChanged(Sensor sensor, int accuracy){
+
         }
     }
 }

@@ -14,6 +14,7 @@
     <string name="set_properties_highscores_button_text">High Scores filters</string>
     <string name="game_over_textview_string">GAME OVER</string>
     <string name="game_over_textview_string2">Tap to play again</string>
+    <string name="test">test</string>
     <string name="developers_string">Developers:</string>
     <string name="developer1_string">Olariu Ciprian</string>
     <string name="developer2_string">Trifan Mircea-Mihai</string>
@@ -30,4 +31,5 @@
     <string name="gestureeffect4_string">Fast Fall</string>
     <string name="gestureeffect5_string">Rotate Left</string>
     <string name="gestureeffect6_string">Rotate Right</string>
+
 </resources>
